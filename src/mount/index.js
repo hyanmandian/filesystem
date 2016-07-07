@@ -36,11 +36,17 @@ function create(disk, inodes, path) {
     
 }
 
-module.exports = (disk) => {
-    
+function getStructure(disk) {
     const superBlock = JSON.parse(disk.read(0));
-    const root = JSON.parse(disk.read(superBlock['root']));
-    const bitmap = JSON.parse(disk.read(superBlock['bitmap']));
+    
+    return {
+        superBlock,
+        'root': JSON.parse(disk.read(superBlock['root'])),
+        'bitmap': JSON.parse(disk.read(superBlock['bitmap'])),
+    };
+}
+
+module.exports = (disk) => {
     
     createDirectory('/', disk.getName());
     
@@ -49,6 +55,12 @@ module.exports = (disk) => {
     return {
         'rootPath': disk.getPath(),
         'store': (inode) => {
+            const {
+                superBlock,
+                root,
+                bitmap,
+            } = getStructure(disk);
+            
             const block = getEmptyPosition(bitmap);
             disk.write(block, JSON.stringify(inode));
             
@@ -61,6 +73,32 @@ module.exports = (disk) => {
                 'block': block,
             };
             disk.write(superBlock['root'], JSON.stringify(root));
+        },
+        'update': (inode) => {
+            if(inode.type == 'directory') {
+                
+            } else if(inode.type == 'file') {
+                
+            }
+        },
+        'destroy': (inode) => {
+            const {
+                superBlock,
+                root,
+                bitmap,
+            } = getStructure(disk);
+            
+            bitmap[inode.block] = false;
+            disk.write(superBlock['bitmap'], JSON.stringify(bitmap));
+            
+            delete root[inode.block];
+            disk.write(superBlock['root'], JSON.stringify(root));
+        },
+        'getDisk': () => {
+            return disk;
+        },
+        'getStructure': () => {
+            return getStructure(disk);
         },
     };
     

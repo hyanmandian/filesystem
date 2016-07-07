@@ -2,51 +2,36 @@ const fs = require('fs');
 const Inode = require('../Inode/index');
 const utils = require('../utils/index');
 
-function createChildren(virtualFs, name, path, children = []) {
-    
-    try {
-        const parents = path.split('/');
-        
-        for(let key in parents) {
-            const name = parents[key];
-            path = path + name;
-            
-            const InodeDirectory = Inode.directory(name);
-            
-            if(key == parent.length - 1) {
-                fs.mkdirSync(path, 0777);
-            } else {
-                utils.try(() => {
-                    fs.mkdirSync(path, 0777);
-                });
-            }
-            
-            virtualFs.create(InodeDirectory);
-            const child = createChildren(virtualFs, name, path, children);
-            children.push(child);
-        }
-        
-        return children;
-    } catch(e) {
-        throw new Error(e);
-    }
-    
-};
 
 module.exports = (virtualFs, name, path = '/') => {
     
     try {
-        const name = virtualFs.rootPath + path + name;
-     
-        const InodeDirectory = Inode.directory(name);
+        let directoryPath = virtualFs.rootPath;
         
-        InodeDirectory.children = createChildren(virtualFs, name, path);
+        const tempParents = path.split('/')
+        const parents = tempParents;
         
-        fs.mkdirSync(path, 0777);
+        for(let key in parents) {
+            const parentName = parents[key];
+            
+            if(! parentName.length || key == parents.length - 1) continue ;
+            
+            directoryPath+= '/' + parentName;
+            
+            const InodeDirectory = Inode.directory(parentName);
+            
+            utils.try(() => {
+                fs.mkdirSync(directoryPath, 0777);
+                virtualFs.store(InodeDirectory);
+            });
+        }
     
-        virtualFs.create(InodeDirectory);
+        const InodeDirectory = Inode.directory(name);
+        virtualFs.store(InodeDirectory);
+        fs.mkdirSync(directoryPath + '/' + name, 0777);
+    
     } catch(e) {
-        throw new Error(e);
+        throw new Error(`Diretorio ${name} já existe.`);
     }
     
 };
