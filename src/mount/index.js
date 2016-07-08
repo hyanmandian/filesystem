@@ -66,6 +66,11 @@ module.exports = (disk) => {
             } = getStructure(disk);
             
             const block = getEmptyPosition(bitmap);
+            
+            if(! block) {
+                throw new RangeError('Disco não possui espaço disponivel.');
+            }
+            
             disk.write(block, JSON.stringify(inode));
             
             bitmap[block] = true;

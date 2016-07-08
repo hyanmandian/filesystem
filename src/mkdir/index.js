@@ -36,6 +36,9 @@ module.exports = (virtualFs, name, path = '/') => {
                 fs.mkdirSync(directoryPath, 0777);
                 inodes[key] = virtualFs.store(InodeDirectory);
             } catch(e) {
+                if(e.name == 'RangeError') {
+                    throw new Error(e.message);
+                }
                 throw new Error(`Diretorio ${name} já existe.`);
             }
         } else {

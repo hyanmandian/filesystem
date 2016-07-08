@@ -6,8 +6,7 @@ const rmdir = require('../src/rmdir/index');
 const lsdir = require('../src/lsdir/index');
 
 let localDisk = new Disk('test.fs', 10);
-    // localDisk = mkfs(localDisk);
+    localDisk = mkfs(localDisk);
 
 const fs = mount(localDisk);
-// mkdir(fs, '1', '/b/');
-// mkdir(fs, '2', '/b/');
+mkdir(fs, '1', '/');
