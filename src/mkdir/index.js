@@ -2,36 +2,65 @@ const fs = require('fs');
 const Inode = require('../Inode/index');
 const utils = require('../utils/index');
 
-
 module.exports = (virtualFs, name, path = '/') => {
     
-    try {
-        let directoryPath = virtualFs.rootPath;
+    let children = {};
+    let inodes = {};
+    
+    let directoryPath = virtualFs.rootPath;
+    
+    let tempPath = (path + '/' + name).split('/');
+    let tempParents = [];
+    
+    for(let key in tempPath) {
+        if(! tempPath[key].length) continue ;
         
-        const tempParents = path.split('/')
-        const parents = tempParents;
+        tempParents.push(tempPath[key]);
+    }
+    
+    const parents = tempParents;
+    
+    for(let key in parents) {
+        const parentName = parents[key];
         
-        for(let key in parents) {
-            const parentName = parents[key];
-            
-            if(! parentName.length || key == parents.length - 1) continue ;
-            
-            directoryPath+= '/' + parentName;
-            
-            const InodeDirectory = Inode.directory(parentName);
-            
+        directoryPath+= '/' + parentName;
+
+        const InodeDirectory = Inode.directory(parentName);
+        
+        if(parents[parseInt(key + 1)]) {
+            children[key] = parseInt(key + 1);
+        }
+        
+        if(key == parents.length - 1) {
+            try {
+                fs.mkdirSync(directoryPath, 0777);
+                inodes[key] = virtualFs.store(InodeDirectory);
+            } catch(e) {
+                throw new Error(`Diretorio ${name} já existe.`);
+            }
+        } else {
             utils.try(() => {
                 fs.mkdirSync(directoryPath, 0777);
-                virtualFs.store(InodeDirectory);
+                inodes[key] = virtualFs.store(InodeDirectory, key == 0);
             });
         }
+    }
     
-        const InodeDirectory = Inode.directory(name);
-        virtualFs.store(InodeDirectory);
-        fs.mkdirSync(directoryPath + '/' + name, 0777);
+    const disk = virtualFs.getDisk();
     
-    } catch(e) {
-        throw new Error(`Diretorio ${name} já existe.`);
+    for(let key in children) {
+        utils.try(() => {
+            let directory = JSON.parse(disk.read(inodes[key]));
+            const childrenDirectory = JSON.parse(disk.read(inodes[children[key]]));
+            
+            directory.children.push({
+                'name': childrenDirectory.name,
+                'type': childrenDirectory.type,
+                'block': inodes[children[key]],
+            });
+            
+            virtualFs.update(inodes[key], directory);
+        })
     }
     
 };

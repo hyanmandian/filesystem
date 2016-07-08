@@ -24,6 +24,8 @@ module.exports = (disk) => {
             for(let i = 0; i < disk.getTotalBlocks(); i++) {
                 data[i] = structure['superBlock'] == i || structure['root'] == i || structure['bitmap'] == i ? true : false;
             }
+        } else if(key == 'root') {
+            data = [];
         }
         
         disk.write(structure[key], JSON.stringify(data));

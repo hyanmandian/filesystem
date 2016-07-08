@@ -24,10 +24,10 @@ function createDirectory(name, path) {
 function create(disk, inodes, path) {
     
     for(let key in inodes) {
-        const inode = disk.read(inodes[key].block);
+        const inode = JSON.parse(disk.read(inodes[key].block));
         if(inode.type == 'directory') {
             createDirectory(inode.name, path);
-            const childrenRoot = path + inode.name;
+            const childrenRoot = path + inode.name + '/';
             create(disk, inode.children, childrenRoot);
         } else if(inode.type == 'file') {
             createFile();
@@ -48,13 +48,17 @@ function getStructure(disk) {
 
 module.exports = (disk) => {
     
+    const {
+        root,
+    } = getStructure(disk);
+    
     createDirectory('/', disk.getName());
     
-    create(disk, root, disk.getPath());
+    create(disk, root, disk.getPath() + '/');
    
     return {
         'rootPath': disk.getPath(),
-        'store': (inode) => {
+        'store': (inode, inRoot = false) => {
             const {
                 superBlock,
                 root,
@@ -67,19 +71,20 @@ module.exports = (disk) => {
             bitmap[block] = true;
             disk.write(superBlock['bitmap'], JSON.stringify(bitmap));
 
-            root[block] = {
-                'name': inode.name,
-                'type': inode.type,
-                'block': block,
-            };
-            disk.write(superBlock['root'], JSON.stringify(root));
-        },
-        'update': (inode) => {
-            if(inode.type == 'directory') {
+            if(inRoot) {
+                root.push({
+                    'name': inode.name,
+                    'type': inode.type,
+                    'block': block,
+                });
                 
-            } else if(inode.type == 'file') {
-                
+                disk.write(superBlock['root'], JSON.stringify(root));
             }
+            
+            return block;
+        },
+        'update': (block, inode) => {
+            disk.write(block, JSON.stringify(inode));
         },
         'destroy': (inode) => {
             const {
@@ -100,6 +105,7 @@ module.exports = (disk) => {
         'getStructure': () => {
             return getStructure(disk);
         },
+        
     };
     
 };
