@@ -12,7 +12,6 @@ module.exports = (virtualFs, name, path = '/') => {
         if(inodeBlock.name == name && inodeBlock.type == 'directory') {
             let inodeDirectory = JSON.parse(disk.read(inodeBlock.block));
             inodeDirectory['block'] = inodeBlock.block;
-            fs.rmdirSync(directoryPath + name);
             virtualFs.destroy(inodeDirectory);
             
             return ;
